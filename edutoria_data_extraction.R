@@ -18,7 +18,7 @@ library(ryandexdirect)
 library(openxlsx)
 library(Rcpp)
 
-# Yandex Direct authentification
+# YD authentification
 WorkPath <- getwd()
 yadirAuth(Login="sea-mg-dzo-sbereducation-guest",TokenPath=WorkPath)
 
@@ -33,23 +33,24 @@ googleAuthR::gar_set_client(
   scope = "https://www.googleapis.com/auth/analytics.readonly"
 )
 
-# Query list of accounts
+# Getting query list of accounts from GA
 accounts <- ga_account_list()
 accounts[, c("accountName", "webPropertyName", "viewId", "viewName")]
 
-# Getting data from GA
+# Setting date period
 startDate <- "2022-07-01"
 endDate <- "2022-07-07"
 
+# Getting data from GA
 listGA <- google_analytics(
   viewId = 268321335,
   date_range = c(startDate,endDate),
   metrics = c("users","sessions","bounces","goal2Completions","goal3Completions"), 
-  dimensions = c("medium","source","campaign"),
+  dimensions = c("medium","source","campaign","date"),
   filtersExpression = "ga:source==yandex;ga:medium==cpc"
 )
 
-# Getting data from Yandex Direct
+# Getting data from YD
 listYD <- yadirGetReport(
   DateFrom = startDate,
   DateTo = endDate,
@@ -58,12 +59,17 @@ listYD <- yadirGetReport(
   TokenPath = WorkPath
 )
 
-# Joining tables
+# Converting lists to data frames and dividing GA campaign into id and name
 dataGA <- as.data.frame(listGA)
+dataGA$id[1:nrow(dataGA)] <- dataGA$campaign[1:nrow(dataGA)]
+dataGA$campaign[1:nrow(dataGA)] <- gsub("\\|.*","",dataGA$campaign[1:nrow(dataGA)])
+dataGA$id[1:nrow(dataGA)] <- gsub(".*\\|","",dataGA$id[1:nrow(dataGA)])
 dataYD <- as.data.frame(listYD)
 colnames(dataYD) <- c("campaign","id","date","clicks","cost")
-colnames(dataGA) <- c("medium","source","campaign","users","sessions","bounces","goal2","goal3")
-report <- merge(dataGA, dataYD, by = "campaign")
+colnames(dataGA) <- c("medium","source","campaign","date","users","sessions","bounces","goal2","goal3","id")
+
+# Joining tables
+report <- merge(dataGA, dataYD, by = c("campaign","id","date"))
 
 # Converting data to Excel file
 headlineStyle <- createStyle(

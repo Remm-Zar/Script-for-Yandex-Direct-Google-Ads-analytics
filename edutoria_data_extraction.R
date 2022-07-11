@@ -20,7 +20,7 @@ library(Rcpp)
 
 # YD authentification
 WorkPath <- getwd()
-yadirAuth(Login="sea-mg-dzo-sbereducation-guest",TokenPath=WorkPath)
+yadirAuth(Login = "sea-mg-dzo-sbereducation-guest", TokenPath = WorkPath)
 
 # GA authentification
 googleAuthR::gar_auth_service(
@@ -34,19 +34,21 @@ googleAuthR::gar_set_client(
 )
 
 # Getting query list of accounts from GA
-accounts <- ga_account_list()
-accounts[, c("accountName", "webPropertyName", "viewId", "viewName")]
+#accounts <- ga_account_list()
+#accounts[, c("accountName", "webPropertyName", "viewId", "viewName")]
 
 # Setting date period
+startDate <- format(as.Date("2022-07-01"),"%d.%m.%Y")
+endDate <- format(as.Date("2022-07-05"),"%d.%m.%Y")
 startDate <- "2022-07-01"
-endDate <- "2022-07-07"
+endDate <- "2022-07-05"
 
 # Getting data from GA
 listGA <- google_analytics(
   viewId = 268321335,
-  date_range = c(startDate,endDate),
-  metrics = c("users","sessions","bounces","goal2Completions","goal3Completions"), 
-  dimensions = c("medium","source","campaign","date"),
+  date_range = c(startDate, endDate),
+  metrics = c("users", "sessions", "bounces", "goal2Completions", "goal3Completions"), 
+  dimensions = c("medium", "source", "campaign", "date"),
   filtersExpression = "ga:source==yandex;ga:medium==cpc"
 )
 
@@ -54,22 +56,29 @@ listGA <- google_analytics(
 listYD <- yadirGetReport(
   DateFrom = startDate,
   DateTo = endDate,
-  FieldNames = c("CampaignName","CampaignId","Date","Clicks","Cost"),
-  Login="sea-mg-dzo-sbereducation-guest",
+  FieldNames = c("CampaignName", "CampaignId", "Date", "Clicks", "Cost"),
+  Login = "sea-mg-dzo-sbereducation-guest",
   TokenPath = WorkPath
 )
 
 # Converting lists to data frames and dividing GA campaign into id and name
 dataGA <- as.data.frame(listGA)
 dataGA$id[1:nrow(dataGA)] <- dataGA$campaign[1:nrow(dataGA)]
-dataGA$campaign[1:nrow(dataGA)] <- gsub("\\|.*","",dataGA$campaign[1:nrow(dataGA)])
-dataGA$id[1:nrow(dataGA)] <- gsub(".*\\|","",dataGA$id[1:nrow(dataGA)])
+dataGA$campaign[1:nrow(dataGA)] <- gsub("\\|.*", "", dataGA$campaign[1:nrow(dataGA)])
+dataGA$id[1:nrow(dataGA)] <- gsub(".*\\|", "", dataGA$id[1:nrow(dataGA)])
 dataYD <- as.data.frame(listYD)
-colnames(dataYD) <- c("campaign","id","date","clicks","cost")
-colnames(dataGA) <- c("medium","source","campaign","date","users","sessions","bounces","goal2","goal3","id")
+colnames(dataYD) <- c("campaign", "id", "date", "clicks", "cost")
+colnames(dataGA) <- c("medium", "source", "campaign", "date", "users", "sessions", "bounces", "goal 2", "goal 3", "id")
 
-# Joining tables
-report <- merge(dataGA, dataYD, by = c("campaign","id","date"))
+# Joining tables (sort by date)
+report <- merge(dataGA, dataYD, by = c("campaign", "id", "date"))
+report$costPerUser <- report$cost/report$users
+names(report)[names(report) == "costPerUser"] <- "cost per user"
+report <- report[, c("medium", "source", "campaign", "id", "date", "cost", "users", "cost per user", "clicks", "sessions", "bounces", "goal 2", "goal 3")] 
+report <- report[order(report$date), ]
+#report$date[1:nrow(report)] <- strptime(report$date[1:nrow(report)], "%Y-%m-%d")
+#report$date[1:nrow(report)] <- format(report$date[1:nrow(report)], "%d-%m-%Y")
+#report$date[1:nrow(report)] <- as.character.Date(report$date[1:nrow(report)])
 
 # Converting data to Excel file
 headlineStyle <- createStyle(
@@ -77,9 +86,8 @@ headlineStyle <- createStyle(
   halign = "center", 
   textDecoration = "Bold", 
   fontSize = 12, 
-  border = c("top","bottom","left","right")
+  border = c("top", "bottom", "left", "right")
 )
-write.xlsx(report,"report.xlsx", headerStyle = headlineStyle, tableStyle = "TableStyleLight1",borders = "all")
-
-
+write.xlsx(report, "report.xlsx", headerStyle = headlineStyle ,borders = "all")
+ 
 

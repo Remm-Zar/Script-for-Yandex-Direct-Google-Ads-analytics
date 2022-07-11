@@ -5,11 +5,11 @@
 #Готово.Токен сохранен в файл, и пока он у вас есть, подключение из скрипта к Яндекс кабинету по указанному логину будет происходить автматически.
 
 # Installing packages
-#install.packages("googleAuthR")
-#install.packages("googleAnalyticsR")
+install.packages("googleAuthR")
+install.packages("googleAnalyticsR")
 #install.packages("ryandexdirect")
-#install.packages("openxlsx")
-#install.packages('Rcpp')
+install.packages("openxlsx")
+install.packages('Rcpp')
 
 # Import of packages
 library(googleAuthR)
@@ -24,12 +24,12 @@ yadirAuth(Login = "sea-mg-dzo-sbereducation-guest", TokenPath = WorkPath)
 
 # GA authentification
 googleAuthR::gar_auth_service(
-  json = "C:/Scripts/ga-data-extraction-edutoria-23199bd79bf8.json",
+  json = "D:/SberEdu/Web-analysis-/ga-data-extraction-edutoria-23199bd79bf8.json",
   scope = "https://www.googleapis.com/auth/analytics.readonly"
 )
 
 googleAuthR::gar_set_client(
-  json = "C:/Scripts/client_secret_764341467749-uj4k0bnk4rq93rau61h61fv0ggqfd5oi.apps.googleusercontent.com.json", 
+  json = "D:/SberEdu/Web-analysis-/client_secret_764341467749-uj4k0bnk4rq93rau61h61fv0ggqfd5oi.apps.googleusercontent.com.json", 
   scope = "https://www.googleapis.com/auth/analytics.readonly"
 )
 
@@ -45,7 +45,7 @@ endDate <- "2022-07-05"
 
 # Getting data from GA
 listGA <- google_analytics(
-  viewId = 268321335,
+  viewId = 268321335,anti_sample = TRUE,
   date_range = c(startDate, endDate),
   metrics = c("users", "sessions", "bounces", "goal2Completions", "goal3Completions"), 
   dimensions = c("medium", "source", "campaign", "date"),
@@ -53,6 +53,9 @@ listGA <- google_analytics(
 )
 
 # Getting data from YD
+date_from <- as.Date(startDate)
+date_to <- as.Date(endDate)
+
 listYD <- yadirGetReport(
   DateFrom = startDate,
   DateTo = endDate,
@@ -76,9 +79,10 @@ report$costPerUser <- report$cost/report$users
 names(report)[names(report) == "costPerUser"] <- "cost per user"
 report <- report[, c("medium", "source", "campaign", "id", "date", "cost", "users", "cost per user", "clicks", "sessions", "bounces", "goal 2", "goal 3")] 
 report <- report[order(report$date), ]
-#report$date[1:nrow(report)] <- strptime(report$date[1:nrow(report)], "%Y-%m-%d")
-#report$date[1:nrow(report)] <- format(report$date[1:nrow(report)], "%d-%m-%Y")
-#report$date[1:nrow(report)] <- as.character.Date(report$date[1:nrow(report)])
+
+#converting of type Date to character for correct view in the excel table
+report$date <- strptime(as.character(report$date),"%Y-%m-%d")
+report$date <- format(report$date,"%Y-%m-%d")
 
 # Converting data to Excel file
 headlineStyle <- createStyle(
@@ -88,6 +92,5 @@ headlineStyle <- createStyle(
   fontSize = 12, 
   border = c("top", "bottom", "left", "right")
 )
-write.xlsx(report, "report.xlsx", headerStyle = headlineStyle ,borders = "all")
- 
+write.xlsx(report, "D:/SberEdu/Web-analysis-/report.xlsx", headerStyle = headlineStyle ,borders = "all")
 

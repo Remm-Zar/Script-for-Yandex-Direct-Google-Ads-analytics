@@ -33,6 +33,7 @@ googleAuthR::gar_auth_service(
 )
 
 googleAuthR::gar_set_client(
+#you need client_secret file
   json = "C:/Scripts/client_secret_764341467749-uj4k0bnk4rq93rau61h61fv0ggqfd5oi.apps.googleusercontent.com.json", 
   scope = "https://www.googleapis.com/auth/analytics.readonly"
 )
